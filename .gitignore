@@ -1,34 +1,23 @@
-# data / outputs
-datasets/
-output_2class/
-sample_data/
-YOLO/
-runs/
-results/
-outputs/
+# 데이터 전체 제외
+datasets/**
+output_2class/**
+sample_data/**
 
-# model weights
+# 폴더 구조 유지용 파일은 허용
+!datasets/.gitkeep
+!output_2class/.gitkeep
+!sample_data/.gitkeep
+
+# 모델/결과
 *.pt
 *.pth
-*.onnx
 *.ckpt
-
-# arrays / binaries / archives
-*.npy
-*.npz
+*.onnx
 *.zip
-*.tar
-*.gz
-*.7z
 
-# images
+# 이미지
 *.jpg
-*.jpeg
 *.png
-*.bmp
-*.tif
-*.tiff
 
-# python cache
+# 기타
 __pycache__/
-*.pyc
