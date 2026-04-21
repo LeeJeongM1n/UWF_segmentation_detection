@@ -1,0 +1,39 @@
+python UWF_seg_det.py     --image_dir /mnt/richul_FM/UWF_Quality/test/wfp_img   \
+                          --output_dir /mnt/richul_FM/UWF_seg_det/output   \
+                          --yolo_weights /mnt/richul_FM/YOLO/DISC/outputs/disc/weights/best.pt \
+                          --yolo_img_size 640     \
+                          --seg_ckpt /mnt/richul_FM/UWF_Quality/output/DeepLabV3Plus-resnet50/DeepLabV3Plus-resnet50-epoch=25-valid_loss=0.0351.ckpt  \
+                          --seg_input_size 320 320    \
+                          --seg_thr 0.5    \
+                          --seg_alpha 0.3
+
+
+python UWF_seg_det_2class.py \
+                          --image_dir /mnt/richul_FM/UWF_Quality/new_split/test/wfp_img   \
+                          --output_dir /mnt/richul_FM/UWF_seg_det/output_2class   \
+                          --yolo_weights /mnt/richul_FM/YOLO/outputs/v5s-mod2/weights/best.pt \
+                          --yolo_img_size 640     \
+                          --seg_ckpt /mnt/richul_FM/UWF_Quality/output/new_split/DeepLabV3Plus-resnet50/DeepLabV3Plus-resnet50-epoch=27-valid_loss=0.0328.ckpt  \
+                          --seg_input_size 320 320    \
+                          --seg_thr 0.5    \
+                          --seg_alpha 0.3
+
+python UWF_seg_det_2class_metrics.py \
+  --image_dirs /mnt/richul_FM/UWF_seg_det/datasets/Box/MSHF /mnt/richul_FM/UWF_seg_det/datasets/Box/OUWFD_downsize \
+  --output_dir /mnt/richul_FM/UWF_seg_det/outputs/sample_eval \
+  --yolo_weights /mnt/richul_FM/YOLO/outputs/v5s-mod2/weights/best.pt \
+  --seg_ckpt /mnt/richul_FM/UWF_Quality/output/new_split/DeepLabV3Plus-resnet50/DeepLabV3Plus-resnet50-epoch=27-valid_loss=0.0328.ckpt \
+  --do_eval \
+  --gt_seg_dir /mnt/richul_FM/UWF_seg_det/datasets/Seg/others 
+
+# MSHF UWF Dataset path
+/mnt/richul_FM/UWF_seg_det/datasets/MSHF_dataset/MSHF_dataset/Original/UWF-mosaic
+# OUWFD Dataset path
+/mnt/richul_FM/X-Lat/UWF-Lat/images/Laterality/Original_UWF_Image
+
+python Image_to_jpg.py --folder /mnt/richul_FM/UWF_Quality/new_split/test/wfp_img
+python Image_to_jpg.py --folder /mnt/richul_FM/UWF_Quality/new_split/test/wfp_mask
+python Image_to_jpg.py --folder /mnt/richul_FM/UWF_Quality/new_split/valid/wfp_img
+python Image_to_jpg.py --folder /mnt/richul_FM/UWF_Quality/new_split/valid/wfp_mask
+python Image_to_jpg.py --folder /mnt/richul_FM/UWF_Quality/new_split/train/wfp_img
+python Image_to_jpg.py --folder /mnt/richul_FM/UWF_Quality/new_split/train/wfp_mask

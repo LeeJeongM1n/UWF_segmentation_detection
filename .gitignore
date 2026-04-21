@@ -1,0 +1,34 @@
+# data / outputs
+datasets/
+output_2class/
+sample_data/
+YOLO/
+runs/
+results/
+outputs/
+
+# model weights
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# arrays / binaries / archives
+*.npy
+*.npz
+*.zip
+*.tar
+*.gz
+*.7z
+
+# images
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff
+
+# python cache
+__pycache__/
+*.pyc
