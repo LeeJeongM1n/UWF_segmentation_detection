@@ -171,22 +171,127 @@ UWF_segmentation_detection/
 
 ## Key Script
 
-### inference_tta_mean.py
+## Key Scripts
 
-> This repository currently focuses on inference and evaluation pipelines using pretrained segmentation and heatmap regression models.
+### detection_train/train_disc_macula_heatmap_model.py
 
-* Performs inference using pretrained U-Net models
-* Generates disc and macula heatmaps
-* Applies flip-based TTA (horizontal / vertical)
-* Uses blob peak + connected components for localization
+Heatmap regression training pipeline for optic disc and macula localization.
+
+Main features:
+
+* Trains 2-channel U-Net heatmap regression model
+* Uses Gaussian-based GT heatmaps generated from YOLO-format annotations
+* Predicts:
+
+  * Channel 1: optic disc heatmap
+  * Channel 2: macula heatmap
+* Uses MSE-based heatmap regression loss
+* Saves trained model checkpoints
+
+Purpose:
+
+```text
+YOLO annotation (.txt)
+        ↓
+Gaussian regression heatmap
+        ↓
+Heatmap regression model training
+```
 
 Outputs:
 
-* Heatmap images
+* Trained model checkpoint (`.pth`)
+* Training logs
+* Validation metrics
+* Predicted heatmap visualization (optional)
+
+---
+
+### inference/disc_macula_heatmap_inference.py
+
+Basic heatmap inference and evaluation pipeline using pretrained weights.
+
+Main features:
+
+* Performs 2-channel heatmap inference
+* Generates:
+
+  * Heatmap outputs
+  * Binary masks
+  * Overlay visualizations
+* Computes evaluation metrics:
+
+  * Dice
+  * IoU
+  * Accuracy
+  * Precision
+  * Recall
+
+Purpose:
+
+```text
+Input retinal image
+        ↓
+Pretrained heatmap model
+        ↓
+Disc / Macula heatmap prediction
+```
+
+Outputs:
+
+* Disc / macula heatmaps
 * Binary masks
-* Overlay visualization
-* Center coordinate CSV
-* Dice / IoU metrics (optional)
+* Overlay visualizations
+* Metrics CSV
+* Dice / IoU evaluation results
+
+---
+
+### inference/inference_tta_mean.py
+
+Final inference pipeline with TTA, localization refinement, and anatomical visualization.
+
+Main features:
+
+* Flip-based TTA:
+
+  * Original
+  * Horizontal flip
+  * Vertical flip
+* TTA heatmap averaging
+* Connected-component-based localization
+* Blob peak extraction
+* Largest valid region selection
+* Disc / macula center coordinate extraction
+* ETDRS visualization
+* DDF zone visualization
+* Circular retinal crop generation
+* CSV export of predicted centers
+
+Purpose:
+
+```text
+Heatmap prediction
+        ↓
+TTA averaging
+        ↓
+Connected component analysis
+        ↓
+Robust disc / macula localization
+        ↓
+Anatomical visualization & analysis
+```
+
+Outputs:
+
+* Averaged heatmaps
+* Refined binary masks
+* Disc / macula center coordinates
+* Overlay visualizations
+* ETDRS visualizations
+* Zone-based analysis images
+* Circular retinal crops
+* Localization CSV results
 
 ---
 
