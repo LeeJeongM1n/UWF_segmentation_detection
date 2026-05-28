@@ -1,13 +1,39 @@
-# UWF Segmentation & Detection Project
+# UWF Segmentation & Heatmap-based Detection Project
 
-This repository contains a pipeline for preprocessing and analyzing
-Ultra-Widefield (UWF) retinal images.
+This repository contains preprocessing, inference, evaluation, and visualization pipelines for Ultra-Widefield (UWF) retinal image analysis.
+
+The project focuses on robust optic disc and macula localization using segmentation-guided heatmap regression.
+
+---
 
 ## Objective
 
 1. Remove imaging artifacts from UWF retinal images
 2. Extract valid retinal regions via segmentation
 3. Localize optic disc and macula using heatmap regression
+4. Improve localization robustness compared to conventional YOLO object detection approaches
+
+---
+
+## Motivation
+
+Conventional YOLO-based object detection showed limited robustness for macula localization in UWF retinal images.
+
+In particular, YOLO-based approaches frequently produced unstable or inaccurate macula detection results due to:
+
+* Ultra-wide retinal distortion
+* Peripheral artifacts
+* Large anatomical variation
+* Low-contrast macular regions
+
+To address these limitations, this repository adopts:
+
+* Segmentation-guided preprocessing
+* Heatmap-based localization
+* Connected-component-based center extraction
+
+instead of direct bounding-box regression.
+
 
 ---
 
@@ -18,19 +44,20 @@ UWF retinal images often include:
 * Peripheral artifacts
 * Uneven illumination
 * Non-retinal background
+* Retinal distortion near image boundaries
 
-This project addresses these challenges using a segmentation-based
-pipeline.
+This project addresses these challenges using a segmentation-guided pipeline.
 
 ---
 
 ## Method
 
-### 1. Segmentation (Preprocessing)
+### 1. Retinal Segmentation (Preprocessing)
 
 * Model: U-Net (`segmentation_models_pytorch`)
 * Removes non-retinal regions and artifacts
-* Extracts valid retinal region
+* Extracts valid retinal ROI region
+* Used to constrain downstream localization
 
 ### 2. Heatmap-based Localization
 
@@ -56,36 +83,89 @@ pipeline.
 
 ---
 
+## Heatmap Generation
+
+Ground-truth regression heatmaps used for detection inference were generated from YOLO-format annotation files.
+
+The original YOLO annotation pipeline is organized under:
+
+```text
+YOLOver/
+```
+
+The YOLO label annotations (`.txt`) were converted into Gaussian-based regression heatmaps for heatmap localization experiments.
+
+This repository represents a transition from:
+
+```text
+YOLO object detection
+        ↓
+Heatmap-based localization
+```
+
+to improve anatomical localization robustness in UWF retinal images.
+
+---
+
 ## Pipeline
 
-```
+```text
 Input UWF Image
         ↓
-Segmentation (Artifact Removal)
+Retinal Segmentation
         ↓
-2-channel Heatmap Prediction (Disc / Macula)
+Retinal ROI Extraction
+        ↓
+2-channel Heatmap Prediction
         ↓
 TTA Averaging
         ↓
-Connected Component + Peak Detection
+Connected Component + Blob Peak Detection
         ↓
 Disc & Macula Center Localization
 ```
 
 ---
 
-## Repository Structure (Current)
+## Repository Structure
 
-> This repository is under active organization.
+```text
+UWF_segmentation_detection/
 
-Includes:
-
-* Segmentation model training / inference scripts
-* Heatmap regression inference scripts
-* Data preprocessing utilities
-* Evaluation scripts (Dice / IoU)
-* Visualization tools (overlay, ETDRS, zones)
-* Experimental scripts
+├── cropCircle/
+│   └── ROI alignment & circular crop utilities
+│
+├── datasets/
+│   └── Dataset preparation utilities
+│
+├── detection_inference/
+│   └── Heatmap-based localization inference
+│
+├── inference/
+│   └── Main inference pipelines
+│
+├── postprocess/
+│   └── Connected component & localization refinement
+│
+├── sample_data/
+│   └── Example images and outputs
+│
+├── weights/
+│   └── Pretrained segmentation & detection weights
+│
+├── YOLOver/
+│   ├── createHeatmap/
+│   │   └── YOLO label → regression heatmap generation
+│   ├── inference/
+│   │   └── Previous YOLO-based detection experiments
+│   ├── Data_preprocess.py
+│   └── YOLO_datasetSplit.py
+│
+├── calculateZoneArea.py
+├── disc_macula_heatmap_detection.py
+├── inference_tta_mean.py
+└── README.md
+```
 
 ---
 
@@ -93,7 +173,9 @@ Includes:
 
 ### inference_tta_mean.py
 
-* Performs inference using U-Net model
+> This repository currently focuses on inference and evaluation pipelines using pretrained segmentation and heatmap regression models.
+
+* Performs inference using pretrained U-Net models
 * Generates disc and macula heatmaps
 * Applies flip-based TTA (horizontal / vertical)
 * Uses blob peak + connected components for localization
@@ -101,9 +183,10 @@ Includes:
 Outputs:
 
 * Heatmap images
-* Optional overlays
-* Center coordinates (CSV)
-* Evaluation metrics (Dice / IoU, if GT provided)
+* Binary masks
+* Overlay visualization
+* Center coordinate CSV
+* Dice / IoU metrics (optional)
 
 ---
 
@@ -128,22 +211,22 @@ pip install -r requirements.txt
 
 ## Pretrained Weights
 
-Pretrained [weights](https://drive.google.com/drive/folders/1NhLqfVaqU6NPpZBci2CtOenpAWpvqO_J?usp=drive_link) for segmentation and heatmap regression models are available via Google Drive.
+Pretrained [weights](https://drive.google.com/drive/folders/1NhLqfVaqU6NPpZBci2CtOenpAWpvqO_J?usp=drive_link) for retinal segmentation and heatmap-based localization are available via Google Drive.
 
 After downloading, place the files under:
 
-```bash
+```text
 weights/
 ```
 
 ---
 
-## Usage (Example)
+## Usage Example
 
 ```bash
 python inference_tta_mean.py \
     --input_dir ./images \
-    --ckpt ./model.pth \
+    --ckpt ./weights/model.pth \
     --out_dir ./results \
     --img_size 512 \
     --tta
@@ -159,22 +242,24 @@ Optional:
 
 ## Output
 
-* Heatmap (disc / macula)
-* Binary mask (largest connected component)
-* Center coordinates (CSV)
+* Disc / macula heatmaps
+* Binary masks
 * Overlay visualization
+* Center coordinate CSV
 
 Optional outputs:
 
 * Dice / IoU metrics
-* ETDRS grid visualization
+* ETDRS visualization
 * Zone-based visualization
 
 ---
 
 ## Notes
 
-* Localization is performed via segmentation heatmaps
-* Designed for medical image analysis robustness
+* Localization is performed using segmentation-guided heatmap regression
+* This repository emphasizes inference and evaluation pipelines
+* Training pipelines are not included in the current public release
+* Designed for robust medical image analysis in UWF retinal images
 
 ---
