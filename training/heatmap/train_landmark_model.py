@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 CONFIG = {
     "IMG_SIZE": (512, 512),
     "NUM_WORKERS": 4,
-    "ENCODER": "efficientnet-b0",
+    "ENCODER": "resnet50",
     "WEIGHTS": "imagenet",
     "DEVICE": "cuda" if torch.cuda.is_available() else "cpu",
 }
