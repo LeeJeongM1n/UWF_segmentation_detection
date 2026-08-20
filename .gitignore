@@ -1,23 +1,23 @@
-# ë°ì´í„° ì „ì²´ ì œì™¸
+# ?°?´?„° ? „ì²? ? œ?™¸
 datasets/**
 output_2class/**
 sample_data/**
 
-# í´ë” êµ¬ì¡° ìœ ì§€ìš© íŒŒì¼ì€ í—ˆìš©
+# ?´?” êµ¬ì¡° ?œ ì§??š© ?ŒŒ?¼??? ?—ˆ?š©
 !datasets/.gitkeep
 !output_2class/.gitkeep
 !sample_data/.gitkeep
 
 # ëª¨ë¸/ê²°ê³¼
 *.pt
-*.pth
-*.ckpt
+# *.pth
+# *.ckpt
 *.onnx
 *.zip
 
-# ì´ë¯¸ì§€
+# ?´ë¯¸ì??
 *.jpg
 *.png
 
-# ê¸°íƒ€
+# ê¸°í??
 __pycache__/
