@@ -1,109 +1,32 @@
-# UWF Segmentation & Heatmap-based Detection Project
+# UWF Retinal Segmentation & Heatmap-based Landmark Localization
 
-This repository contains preprocessing, inference, evaluation, and visualization pipelines for Ultra-Widefield (UWF) retinal image analysis.
+This repository provides training and inference pipelines for **Ultra-Widefield (UWF) retinal image analysis**.
 
-The project focuses on robust optic disc and macula localization using segmentation-guided heatmap regression.
+The pipeline combines:
 
----
+- Retinal region segmentation
+- Optic disc and fovea localization using heatmap regression
+- Flip-based Test-Time Augmentation (TTA)
+- Connected-component-based landmark localization
+- Automated quality-control (QC) analysis
+- CSV-based result export
 
-## Objective
-
-1. Remove imaging artifacts from UWF retinal images
-2. Extract valid retinal regions via segmentation
-3. Localize optic disc and macula using heatmap regression
-4. Improve localization robustness compared to conventional YOLO object detection approaches
-
----
-
-## Motivation
-
-Conventional YOLO-based object detection showed limited robustness for macula localization in UWF retinal images.
-
-In particular, YOLO-based approaches frequently produced unstable or inaccurate macula detection results due to:
-
-* Ultra-wide retinal distortion
-* Peripheral artifacts
-* Large anatomical variation
-* Low-contrast macular regions
-
-To address these limitations, this repository adopts:
-
-* Segmentation-guided preprocessing
-* Heatmap-based localization
-* Connected-component-based center extraction
-
-instead of direct bounding-box regression.
-
+The current implementation uses **segmentation and heatmap regression** for anatomical landmark localization.
 
 ---
 
 ## Overview
 
-UWF retinal images often include:
+Ultra-widefield retinal images may contain non-retinal background, peripheral imaging artifacts, uneven illumination, retinal distortion, and substantial anatomical variation.
 
-* Peripheral artifacts
-* Uneven illumination
-* Non-retinal background
-* Retinal distortion near image boundaries
+In particular, reliable localization of the fovea can be difficult using conventional bounding-box-based object detection.
 
-This project addresses these challenges using a segmentation-guided pipeline.
+The current pipeline therefore separates the problem into two components:
 
----
+1. **Retinal ROI segmentation**
+2. **Optic disc and fovea heatmap regression**
 
-## Method
-
-### 1. Retinal Segmentation (Preprocessing)
-
-* Model: U-Net (`segmentation_models_pytorch`)
-* Removes non-retinal regions and artifacts
-* Extracts valid retinal ROI region
-* Used to constrain downstream localization
-
-### 2. Heatmap-based Localization
-
-* Model outputs 2-channel heatmap:
-
-  * Channel 1: optic disc
-  * Channel 2: macula
-* Sigmoid activation applied to obtain probability maps
-* Test-Time Augmentation (TTA):
-
-  * Original
-  * Horizontal flip
-  * Vertical flip
-* Final prediction obtained by averaging TTA outputs
-
-### 3. Post-processing
-
-* Thresholding on heatmaps
-* Connected component analysis
-* Blob peak detection
-* Selection of largest valid region
-* Extraction of center coordinates (disc / macula)
-
----
-
-## Heatmap Generation
-
-Ground-truth regression heatmaps used for detection inference were generated from YOLO-format annotation files.
-
-The original YOLO annotation pipeline is organized under:
-
-```text
-YOLOver/
-```
-
-The YOLO label annotations (`.txt`) were converted into Gaussian-based regression heatmaps for heatmap localization experiments.
-
-This repository represents a transition from:
-
-```text
-YOLO object detection
-        ↓
-Heatmap-based localization
-```
-
-to improve anatomical localization robustness in UWF retinal images.
+The predicted heatmaps are subsequently refined using Test-Time Augmentation and connected-component analysis to determine the final landmark coordinates.
 
 ---
 
@@ -111,18 +34,40 @@ to improve anatomical localization robustness in UWF retinal images.
 
 ```text
 Input UWF Image
-        ↓
-Retinal Segmentation
-        ↓
-Retinal ROI Extraction
-        ↓
-2-channel Heatmap Prediction
-        ↓
-TTA Averaging
-        ↓
-Connected Component + Blob Peak Detection
-        ↓
-Disc & Macula Center Localization
+        │
+        ├───────────────────────────────┐
+        │                               │
+        ▼                               ▼
+Retinal ROI Segmentation       Landmark Heatmap Regression
+DeepLabV3+                     U-Net
+ResNet50 encoder               ResNet50 encoder
+        │                               │
+        │                       ┌───────┴───────┐
+        │                       │               │
+        │                 Optic Disc         Fovea
+        │                   Heatmap          Heatmap
+        │                       │               │
+        │                       └───────┬───────┘
+        │                               │
+        └───────────────┬───────────────┘
+                        ▼
+                 Flip-based TTA
+            Original / HFlip / VFlip
+                        │
+                        ▼
+                 Heatmap Averaging
+                        │
+                        ▼
+            Connected-component Analysis
+                        │
+                        ▼
+              Disc / Fovea Localization
+                        │
+                        ▼
+                 QC Measurements
+                        │
+                        ▼
+                CSV / Visualization
 ```
 
 ---
@@ -131,240 +76,374 @@ Disc & Macula Center Localization
 
 ```text
 UWF_segmentation_detection/
-
-├── cropCircle/
-│   └── ROI alignment & circular crop utilities
-│
-├── datasets/
-│   └── Dataset preparation utilities
-│
-├── detection_inference/
-│   └── Heatmap-based localization inference
 │
 ├── inference/
-│   └── Main inference pipelines
+│   └── uwf_inference.py
 │
-├── postprocess/
-│   └── Connected component & localization refinement
-│
-├── sample_data/
-│   └── Example images and outputs
+├── training/
+│   ├── heatmap/
+│   │   ├── create_landmark_heatmaps.py
+│   │   └── train_landmark_model.py
+│   │
+│   └── segmentation/
+│       └── train_roi_segmentation.py
 │
 ├── weights/
-│   └── Pretrained segmentation & detection weights
+│   ├── uwf_landmark.pth
+│   └── uwf_roi_segmentation.ckpt
 │
-├── YOLOver/
-│   ├── createHeatmap/
-│   │   └── YOLO label → regression heatmap generation
-│   ├── inference/
-│   │   └── Previous YOLO-based detection experiments
-│   ├── Data_preprocess.py
-│   └── YOLO_datasetSplit.py
+├── datasets/
+├── sample_data/
 │
-├── calculateZoneArea.py
-├── disc_macula_heatmap_detection.py
-├── inference_tta_mean.py
-└── README.md
+├── run_inference.sh
+├── README.md
+├── .gitignore
+└── .gitattributes
 ```
 
 ---
 
-## Key Script
+# Models
 
-## Key Scripts
+## 1. Retinal ROI Segmentation
 
-### detection_train/train_disc_macula_heatmap_model.py
+The retinal segmentation model identifies the valid retinal region in each UWF image.
 
-Heatmap regression training pipeline for optic disc and macula localization.
+This step is used to distinguish the retinal field from non-retinal background and peripheral imaging artifacts.
 
-Main features:
-
-* Trains 2-channel U-Net heatmap regression model
-* Uses Gaussian-based GT heatmaps generated from YOLO-format annotations
-* Predicts:
-
-  * Channel 1: optic disc heatmap
-  * Channel 2: macula heatmap
-* Uses MSE-based heatmap regression loss
-* Saves trained model checkpoints
-
-Purpose:
+### Architecture
 
 ```text
-YOLO annotation (.txt)
-        ↓
-Gaussian regression heatmap
-        ↓
-Heatmap regression model training
+DeepLabV3+
+└── ResNet50 encoder
 ```
 
-Outputs:
-
-* Trained model checkpoint (`.pth`)
-* Training logs
-* Validation metrics
-* Predicted heatmap visualization (optional)
-
----
-
-### inference/disc_macula_heatmap_inference.py
-
-Basic heatmap inference and evaluation pipeline using pretrained weights.
-
-Main features:
-
-* Performs 2-channel heatmap inference
-* Generates:
-
-  * Heatmap outputs
-  * Binary masks
-  * Overlay visualizations
-* Computes evaluation metrics:
-
-  * Dice
-  * IoU
-  * Accuracy
-  * Precision
-  * Recall
-
-Purpose:
+The pretrained checkpoint is provided at:
 
 ```text
-Input retinal image
-        ↓
-Pretrained heatmap model
-        ↓
-Disc / Macula heatmap prediction
+weights/uwf_roi_segmentation.ckpt
 ```
-
-Outputs:
-
-* Disc / macula heatmaps
-* Binary masks
-* Overlay visualizations
-* Metrics CSV
-* Dice / IoU evaluation results
 
 ---
 
-### inference/inference_tta_mean.py
+## 2. Optic Disc and Fovea Heatmap Regression
 
-Final inference pipeline with TTA, localization refinement, and anatomical visualization.
+An independent heatmap regression model is used to localize the optic disc and fovea.
 
-Main features:
-
-* Flip-based TTA:
-
-  * Original
-  * Horizontal flip
-  * Vertical flip
-* TTA heatmap averaging
-* Connected-component-based localization
-* Blob peak extraction
-* Largest valid region selection
-* Disc / macula center coordinate extraction
-* ETDRS visualization
-* DDF zone visualization
-* Circular retinal crop generation
-* CSV export of predicted centers
-
-Purpose:
+### Architecture
 
 ```text
-Heatmap prediction
-        ↓
-TTA averaging
-        ↓
-Connected component analysis
-        ↓
-Robust disc / macula localization
-        ↓
-Anatomical visualization & analysis
+U-Net
+└── ResNet50 encoder
 ```
 
-Outputs:
+The model receives an RGB retinal image and predicts two continuous heatmaps.
 
-* Averaged heatmaps
-* Refined binary masks
-* Disc / macula center coordinates
-* Overlay visualizations
-* ETDRS visualizations
-* Zone-based analysis images
-* Circular retinal crops
-* Localization CSV results
+```text
+Input
+└── RGB UWF image
+
+Output
+├── Channel 0: Optic disc heatmap
+└── Channel 1: Fovea heatmap
+```
+
+The pretrained landmark model is provided at:
+
+```text
+weights/uwf_landmark.pth
+```
 
 ---
 
-## Getting Started
+# Training
 
-### Clone
+Training code for both retinal segmentation and landmark heatmap regression is included in this repository.
+
+## 1. Landmark Heatmap Generation
+
+Script:
+
+```text
+training/heatmap/create_landmark_heatmaps.py
+```
+
+This script generates the ground-truth heatmaps used to train the landmark regression model.
+
+Landmark annotations are converted into continuous Gaussian heatmaps for:
+
+```text
+Optic disc
+Fovea
+```
+
+These heatmaps are subsequently used as regression targets.
+
+### Workflow
+
+```text
+Landmark Annotation
+        │
+        ▼
+Coordinate Extraction
+        │
+        ▼
+Gaussian Heatmap Generation
+        │
+        ├── Optic Disc Heatmap
+        └── Fovea Heatmap
+        │
+        ▼
+2-channel Training Target
+```
+
+---
+
+## 2. Landmark Heatmap Regression Training
+
+Script:
+
+```text
+training/heatmap/train_landmark_model.py
+```
+
+The landmark model is implemented using `segmentation_models_pytorch`.
+
+### Model configuration
+
+```text
+Architecture : U-Net
+Encoder      : ResNet50
+Input        : 3-channel RGB
+Output       : 2-channel heatmap
+```
+
+The two output channels correspond to:
+
+```text
+Channel 0 → Optic disc
+Channel 1 → Fovea
+```
+
+The model predicts continuous heatmaps rather than bounding boxes.
+Predicted logits are converted to heatmap probabilities using sigmoid activation and optimized against the ground-truth Gaussian heatmaps using mean squared error (MSE).
+
+
+The checkpoint with the lowest validation loss is saved as the best-performing model.
+
+---
+
+## 3. Retinal ROI Segmentation Training
+
+Script:
+
+```text
+training/segmentation/train_roi_segmentation.py
+```
+
+This script trains the retinal ROI segmentation model used in the final inference pipeline.
+
+### Model
+
+```text
+DeepLabV3+
+└── ResNet50 encoder
+```
+
+The resulting checkpoint can be used by `uwf_inference.py` to identify the valid retinal region.
+
+---
+
+# Inference
+
+The complete inference pipeline is implemented in:
+
+```text
+inference/uwf_inference.py
+```
+
+This is the **main inference script** of the repository.
+
+It combines the retinal segmentation model and landmark heatmap regression model into a single inference workflow.
+
+### Main steps
+
+```text
+1. Load UWF image
+
+2. Retinal ROI segmentation
+   └── DeepLabV3+ / ResNet50
+
+3. Landmark heatmap prediction
+   └── U-Net / ResNet50
+
+4. Test-Time Augmentation
+   ├── Original
+   ├── Horizontal flip
+   └── Vertical flip
+
+5. Heatmap averaging
+
+6. Connected-component analysis
+
+7. Optic disc / fovea center extraction
+
+8. Coordinate mapping
+
+9. QC measurements
+
+10. CSV and visualization output
+```
+
+---
+
+## Test-Time Augmentation
+
+Landmark inference uses flip-based Test-Time Augmentation.
+
+Predictions are generated from:
+
+```text
+Original Image
+Horizontal Flip
+Vertical Flip
+```
+
+The flipped predictions are transformed back to the original orientation and averaged.
+This provides a more stable heatmap estimate than relying on a single forward pass.
+
+---
+
+## Landmark Extraction
+
+The averaged heatmaps are post-processed to determine the final landmark coordinates.
+
+The procedure includes:
+
+- Heatmap thresholding
+- Connected-component analysis
+- Valid component selection
+- Landmark center extraction
+
+The final coordinates are mapped back to the corresponding image coordinate system for subsequent QC analysis.
+
+---
+
+# Pretrained Weights
+
+Pretrained weights for both models are included under:
+
+```text
+weights/
+├── uwf_landmark.pth
+└── uwf_roi_segmentation.ckpt
+```
+
+The large model files are managed using **Git LFS**.
+
+After cloning the repository, make sure Git LFS is installed and retrieve the model files using:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+---
+
+# Getting Started
+
+## 1. Clone Repository
 
 ```bash
 git clone https://github.com/LeeJeongM1n/UWF_segmentation_detection.git
 cd UWF_segmentation_detection
 ```
 
-### Environment
+## 2. Download Git LFS Files
 
 ```bash
-conda create -n uwf python=3.9
-conda activate uwf
-pip install -r requirements.txt
+git lfs install
+git lfs pull
 ```
+
+This downloads the pretrained model weights stored through Git LFS.
 
 ---
 
-## Pretrained Weights
+# Running Inference
 
-Pretrained [weights](https://drive.google.com/drive/folders/1NhLqfVaqU6NPpZBci2CtOenpAWpvqO_J?usp=drive_link) for retinal segmentation and heatmap-based localization are available via Google Drive.
+The recommended entry point is:
 
-After downloading, place the files under:
+```bash
+bash run_inference.sh
+```
+
+`run_inference.sh` calls:
 
 ```text
-weights/
+inference/uwf_inference.py
+```
+
+and provides the paths and parameters required for the unified inference pipeline.
+
+Before running inference, configure the paths in `run_inference.sh` according to the local dataset and output directories.
+
+---
+
+# Input
+
+The inference pipeline processes UWF retinal images specified through the configured input data.
+
+A CSV-based input can be used to associate images with the inference pipeline.
+
+Example:
+
+```csv
+image_path
+/path/to/image_001.jpg
+/path/to/image_002.jpg
+/path/to/image_003.jpg
 ```
 
 ---
 
-## Usage Example
+# Output
 
-```bash
-python inference_tta_mean.py \
-    --input_dir ./images \
-    --ckpt ./weights/model.pth \
-    --out_dir ./results \
-    --img_size 512 \
-    --tta
+The inference pipeline generates image-level QC results and landmark localization outputs.
+
+Depending on the configured options, outputs may include:
+
+```text
+Output Directory
+│
+├── QC result CSV
+├── QC summary CSV
+│
+└── QC visualizations
 ```
 
-Optional:
+The output information can include:
 
-```bash
---gt_dir ./gt_heatmaps
-```
-
----
-
-## Output
-
-* Disc / macula heatmaps
-* Binary masks
-* Overlay visualization
-* Center coordinate CSV
-
-Optional outputs:
-
-* Dice / IoU metrics
-* ETDRS visualization
-* Zone-based visualization
+- Retinal ROI information
+- Optic disc coordinates
+- Fovea coordinates
+- Landmark confidence
+- TTA consistency
+- QC measurements
+- Image-level QC results
 
 ---
 
-## Notes
-
-* Localization is performed using segmentation-guided heatmap regression
-* This repository emphasizes inference and evaluation pipelines
-* Training pipelines are not included in the current public release
-* Designed for robust medical image analysis in UWF retinal images
 
 ---
+
+# Notes
+
+- The current repository focuses on **retinal segmentation and heatmap-based landmark localization**.
+- Previous YOLO-based landmark detection code is not part of the current pipeline.
+- Retinal ROI segmentation and landmark localization use separate models.
+- Landmark localization is performed using continuous 2-channel heatmap regression.
+- `uwf_inference.py` is the unified inference script and the recommended entry point for inference.
+- `run_inference.sh` provides a convenient launcher for the complete inference pipeline.
+- Training code for both ROI segmentation and landmark heatmap regression is included.
+- Pretrained model weights are distributed using Git LFS.
