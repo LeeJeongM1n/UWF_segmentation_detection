@@ -24,12 +24,12 @@ IMAGE_ROOT=""
 REPO_DIR="/home/hero/Documents/2026_UWFCLIP/UWF_segmentation_detection"
 
 # 현재 정상 작동한 landmark checkpoint
-LANDMARK_CKPT="${REPO_DIR}/weights/sigma20_best_model.pth"
+LANDMARK_CKPT="${REPO_DIR}/weights/uwf_landmark.pth"
 
 # ROI checkpoint:
 # - 정확한 파일명을 알면 여기에 직접 입력
 # - 빈 문자열이면 weights/ 안에서 roi, seg, mask, retina 이름을 자동 탐색
-ROI_CKPT="${REPO_DIR}/weights/DeepLabV3Plus-resnet50-epoch=21-valid_loss=0.0139.ckpt"
+ROI_CKPT="${REPO_DIR}/weights/uwf_roi_segmentation.ckpt"
 # 예:
 # ROI_CKPT="${REPO_DIR}/weights/roi_best_model.pth"
 
