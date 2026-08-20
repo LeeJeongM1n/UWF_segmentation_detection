@@ -91,7 +91,7 @@ CONDA_ENV=""
 # ------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PY_SCRIPT="${SCRIPT_DIR}/uwf_qc_csv_only.py"
+PY_SCRIPT="${SCRIPT_DIR}/uwf_inference.py"
 
 if [[ -n "${CONDA_ENV}" ]]; then
     if [[ -f "${HOME}/anaconda3/etc/profile.d/conda.sh" ]]; then
