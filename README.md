@@ -392,18 +392,48 @@ Before running inference, configure the paths in `run_inference.sh` according to
 
 # Input
 
-The inference pipeline processes UWF retinal images specified through the configured input data.
+The inference pipeline accepts a **directory containing UWF retinal images** as input.
 
-A CSV-based input can be used to associate images with the inference pipeline.
+Users do not need to manually prepare a CSV file. Instead, specify the input image directory using `IMAGE_DIR` in `run_inference.sh`.
 
-Example:
+For example:
 
-```csv
-image_path
-/path/to/image_001.jpg
-/path/to/image_002.jpg
-/path/to/image_003.jpg
+```bash
+IMAGE_DIR="/path/to/UWF_images"
 ```
+
+The script automatically searches the specified directory and its subdirectories for supported image files.
+
+Supported image formats include:
+
+```text
+.jpg
+.jpeg
+.png
+.bmp
+.tif
+.tiff
+```
+
+For example, the input directory may have the following structure:
+
+```text
+UWF_images/
+├── image_001.jpg
+├── image_002.jpg
+├── image_003.jpg
+└── subfolder/
+    ├── image_004.jpg
+    └── image_005.png
+```
+
+When `run_inference.sh` is executed, all supported images found under `IMAGE_DIR` are automatically collected and processed.
+
+```bash
+bash run_inference.sh
+```
+
+Internally, `run_inference.sh` generates an image manifest for compatibility with the inference pipeline and passes it to `inference/uwf_inference.py`. Therefore, users only need to specify the image directory and do not need to create or manage the CSV file manually.
 
 ---
 
